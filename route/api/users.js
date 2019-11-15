@@ -77,7 +77,8 @@ router.post('/login', (req, res) => {
                                         success: true,
                                         token: 'Bearer ' + token
                                     })
-                                })//.catch(err => console.log(err))
+                                })//.catch(err => console.log(err));
+
                         }else{
                             return res.status(400).json({password: "password incorrect"});
                         }
@@ -85,5 +86,20 @@ router.post('/login', (req, res) => {
             }
         })
 });
+
+// @route  GET api/users/current
+// @desc   Return Current User
+// @access Private
+router.get(
+    '/current',
+    passport.authenticate('jwt', {session: false}),
+    (req, res) => {
+        res.json({
+            id: req.user.id,
+            name: req.user.name,
+            email: req.user.email
+        });
+    }
+);
 
 module.exports = router; 
