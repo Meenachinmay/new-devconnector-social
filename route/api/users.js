@@ -1,20 +1,39 @@
-const express = require('express');
-const router = express.Router();
+const express = require('express')
+const router = express.Router()
 // Load User Model
-const User = require('../../models/User');
-const gravatar = require('gravatar');
-const bcrpyt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const User = require('../../models/User')
+const gravatar = require('gravatar')
+const bcrpyt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
 const keys = require('../../config/keys')
-const passport = require('passport');
+const passport = require('passport')
 
-router.get('/test', (req, res) => res.json({msg: "User works"}));
+// Load Input Validation 
+const validateRegisterInput = require('../../validation/register')
+const validateLoginInput = require('../../validation/login')
+
+
+
+
+// @route  GET api/users/test
+// @desc   Test users route
+// @access Public
+router.get('/test', (req, res) => 
+    res.json({ msg: "Users working"})
+)
 
 // @route  GET api/users/register
 // @desc   Register User
 // @access Public
 router.post('/register', (req, res) => {
+
+    const { errors, isValid } = validateRegisterInput(req.body)
     
+    // Check Validation
+    if (!isValid) {
+        return res.status(400).json(errors)
+    }
+
     User.findOne({email: req.body.email })
             .then(user => {
             if (user){
@@ -46,13 +65,20 @@ router.post('/register', (req, res) => {
                 })
             }
         })
-});
+})
 
 // @route  GET api/users/login
 // @desc   Login User / Returning JWT Token
 // @access Public
 router.post('/login', (req, res) => {
 
+    const { errors, isValid } = validateLoginInput(req.body)
+    
+    // Check Validation
+    if (!isValid) {
+        return res.status(400).json(errors)
+    }
+    
     const email = req.body.email
     const password = req.body.password
 
@@ -61,7 +87,8 @@ router.post('/login', (req, res) => {
         .then(user => {
             // Check for user
             if (!user){
-                return res.status(404).json({email: "user not found"});
+                errors.email = "User not found!"
+                return res.status(404).json(errors)
             }else{
             //Check password
                 bcrpyt.compare(password, user.password)
@@ -77,29 +104,26 @@ router.post('/login', (req, res) => {
                                         success: true,
                                         token: 'Bearer ' + token
                                     })
-                                })//.catch(err => console.log(err));
-
+                                })//.catch(err => console.log(err))
                         }else{
-                            return res.status(400).json({password: "password incorrect"});
+                            errors.password = "Password is Incorrect!"
+                            return res.status(400).json(errors)
                         }
                     })
             }
         })
-});
+})
 
 // @route  GET api/users/current
 // @desc   Return Current User
 // @access Private
-router.get(
-    '/current',
-    passport.authenticate('jwt', {session: false}),
-    (req, res) => {
-        res.json({
-            id: req.user.id,
-            name: req.user.name,
-            email: req.user.email
-        });
-    }
-);
+router.get('/current', passport.authenticate('jwt', { session: false }), 
+(req, res) => {
+    res.json({
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email
+    })
+})
 
-module.exports = router; 
+module.exports = router
